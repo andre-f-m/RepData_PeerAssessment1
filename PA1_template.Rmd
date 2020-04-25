@@ -5,21 +5,214 @@ output:
     keep_md: true
 ---
 
+**Author:** André Felix Miertschink  
+**Date:** 24/04/2020
+
+## Library Requirements  
+  
+Loading the required libraries  
+
+```{r, echo=TRUE}
+library(lattice)
+```
 
 ## Loading and preprocessing the data
 
+### Loading the data
+
+Try to find the data file (CSV) in current folder. If cannot be found, then try to find the compressed zip file and unzip.  
+In case the none of the files can be found, the script will stop. Otherwise, it will continue and load the data.
+
+**NOTES:**  
+- The GitHub repository also contains the dataset for the assignment so it is not required to download the data separately  
+- Program will stop if the files ***activity.csv*** and ***activity.zip*** cannot be found in current directory  
+
+
+```{r, echo=TRUE}
+if (!file.exists('./activity.csv') )
+{
+    if (file.exists('./activity.zip') ) {
+        unzip("./activity.zip")
+    } else {
+        stop("The required file 'activity.zip' couldn't be found in current directory!")
+    }
+}
+dfActivity <- read.csv('./activity.csv', stringsAsFactors = FALSE)
+```
+
+### Processing the data
+
+Processing and transforming the data into a format suitable for the analysis. Show the data frame structure
+
+```{r, echo=TRUE}
+dfActivity$date <- as.Date(dfActivity$date, format="%d/%m/%y")
+str(dfActivity)
+```
 
 
 ## What is mean total number of steps taken per day?
 
+### Calculating the total number of steps taken per day
+
+```{r, echo=TRUE}
+#dfStepsPerDay <- dfActivity %>% group_by(date) %>% summarize(steps = sum(steps, na.rm=TRUE))
+dfStepsPerDay <- aggregate(steps~date,data=dfActivity,sum,na.rm=TRUE)
+str(dfStepsPerDay)
+```
+
+### Histogram of the total number of steps taken each day
+
+```{r, echo=TRUE}
+hist(dfStepsPerDay$steps, main="Histogram of Steps Taken Per Day", xlab= "Steps Per Day", ylab="Number of Days", breaks=20, col="orange")
+```
+
+### Calculating and reporting the mean and median of the total number of steps taken per day
+
+The mean number of steps per day:
+```{r, echo=TRUE}
+mean(dfStepsPerDay$steps)
+``` 
+
+The median number of steps per day:
+```{r, echo=TRUE}
+median(dfStepsPerDay$steps)
+```
 
 
 ## What is the average daily activity pattern?
 
+### Time Series Plot
 
+```{r, echo=TRUE}
+#dfAvgStepsInterval <- dfActivity %>% group_by(interval) %>% summarize(steps = mean(steps, na.rm=TRUE))
+dfAvgStepsInterval <- aggregate(steps~interval,data=dfActivity,mean,na.rm=TRUE)
+
+plot(steps~interval, dfAvgStepsInterval, type = "l", 
+    col = "blue", 
+    xlab = "5min Interval",
+    ylab = "Average Number of Steps Taken", 
+    main = "Average Number of Steps Taken in 5 Minute Intervals")
+
+# After preparing ggplot, I noticed that it probably asked for a plot because it mentioned 
+# to use type = "l" (time series). Therefore, I commented the chart below avoid points deduction. 
+# Just note that the chart below is similar.
+# 
+# library(ggplot2)
+# AvgStepsIntervalPlot <- ggplot(data=dfAvgStepsInterval, aes(x = interval, y = steps))+
+#    xlab("5min Interval")+
+#    ylab("Average Number of Steps Taken")+ 
+#    ggtitle("Average Number of Steps Taken in 5 Minute Intervals")
+# AvgStepsIntervalPlot <- AvgStepsIntervalPlot + geom_line(color = "blue")
+# print(AvgStepsIntervalPlot)
+```
+
+###  The Inteval Containing The Maximum Average Number of Steps
+
+```{r, echo=TRUE}
+dfAvgStepsInterval[which.max(dfAvgStepsInterval$steps),]$interval
+```
 
 ## Imputing missing values
 
+### Calculating and reporting the total number rows with at least one missing value (NA)
+
+```{r echo=TRUE}
+sum(rowSums(is.na(dfActivity)) > 0) 
+# sum(!complete.cases(dfActivity))  This is also correct
+
+# The solutions below would work for the activity.csv dataset, but they could show wrong information in values are changes (more NA's introduced)
+# sum(is.na(dfActivity$steps))  # This counts NA's in STEPS column only
+# sum(is.na(dfActivity)) # This sum all NA's (Note that we could have more than one NA in one row, and it would not show the information requested which is amount of ROWS with NA's) 
+```
+
+### Strategy for filling in all of the missing values in the dataset  
+
+The strategy chosen is to utilize the available mean data set for the 5-minute interval
+The idea is to check each row for an NA in steps column and use the mean steps from the 5-min interval dataset to it.  
+  
+### Below the steps to execute the strategy above creating a new dataset called **dfActivityFilled**
+
+```{r echo=TRUE}
+dfActivityFilled <- dfActivity   # Make a new dataset with the original data
+for(i in 1:nrow(dfActivityFilled)){
+    if(is.na(dfActivityFilled[i,]$steps)){
+        # Extracting the steps fro mthe row where the interval from the Average dataset for the 5min interval is equal to the interval from the NA row
+        dfActivityFilled[i,]$steps <- dfAvgStepsInterval[which(dfAvgStepsInterval$interval == dfActivityFilled[i,]$interval), ]$steps
+        
+        # Another option which might be cleared to see:
+        # Extracting from the 5min interval average dataset the interval which is equal to the interval from the NA row
+        # dfTmp <- dfAvgStepsInterval[which(dfAvgStepsInterval$interval == dfActivityFilled[i,]$interval), ]$steps
+        # dfActivityFilled[i,]$steps <- dfTmp$steps
+    }
+}
+head(dfActivityFilled)
+```
+
+## Histogram of the total number of steps taken each day using the updated dataset
+
+
+```{r, echo=TRUE}
+dfStepsPerDayUpdated <- aggregate(steps~date,data=dfActivityFilled,sum)
+hist(dfStepsPerDayUpdated$steps, main="Histogram of Steps Taken Per Day", xlab= "Steps Per Day", ylab="Number of Days", breaks=20, col="orange")
+``` 
+
+The mean number of steps per day using the updated dataset:
+```{r, echo=TRUE}
+mean(dfStepsPerDayUpdated$steps)
+``` 
+
+The median number of steps per day from the updated dataset: 
+```{r, echo=TRUE}
+median(dfStepsPerDayUpdated$steps)
+```
+
+### Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+The mean value is the same as before because we used the mean value for the missing interval which should be clear. 
+The median value shows a little difference (old: `r format(round(median(dfStepsPerDay$steps),2), nsmall=2)`, new: `r format(round(median(dfStepsPerDayUpdated$steps), 2), nsmall=2)`) and is now the same as mean.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+### New factor column WEEKDAY (wd)
+
+Using the updated dataset, we are creating a new column called weekend which will be TRUE or FALSE depending on the weekday.
+Note that we use the **wday** component of a POSIXlt object might be handier than using weekdays because the week day names differs and depend on the Locale used.
+The return of wday is a numeric weekday (0-6 starting on Sunday).
+
+```{r, echo=TRUE}
+dfActivityFilled$wd <- factor(sapply(dfActivityFilled$date, 
+        function(x) {
+            if (as.POSIXlt(x)$wday == 0 | as.POSIXlt(x)$wday == 6) {  # Sunday=0 ; Saturday=6
+                y <- "weekend"
+            } else {
+                y <- "weekday"
+            }
+            y
+        }
+    )
+)
+str(dfActivityFilled)
+
+```
+
+### Panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+Calculating the total number of steps taken per day and weekdays or weekend using the 5-minute interval
+
+```{r, echo=TRUE}
+dfStepsPerDayFilled <- aggregate(steps~interval + wd ,data=dfActivityFilled,mean)
+str(dfStepsPerDayFilled)
+```
+
+Drawing the panel plot
+
+```{r, echo=TRUE}
+xyplot(steps~interval | wd, data = dfStepsPerDayFilled,
+      type = 'l',
+      col = "blue", 
+      xlab = "5min Interval",
+      ylab = "Average Number of Steps Taken", 
+      main = "Average Number of Steps Taken in 5 Minute Intervals",
+      layout = c(1,2))
+```
