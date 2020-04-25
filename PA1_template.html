@@ -520,7 +520,7 @@ hist(dfStepsPerDayUpdated$steps, main=&quot;Histogram of Steps Taken Per Day&quo
 <h2>Are there differences in activity patterns between weekdays and weekends?</h2>
 <div id="new-factor-column-weekday-wd" class="section level3">
 <h3>New factor column WEEKDAY (wd)</h3>
-<p>Using the updated dataset, we are creating a new column called weekend which will be TRUE or FALSE depending on the weekday. Note that we use the <strong>wday</strong> component of a POSIXlt object might be handier than using weekdays because the week day names differs and depend on the Locale used. The return of wday is a numeric weekday (0-6 starting on Sunday).</p>
+<p>Using the updated dataset, we are creating a new column called <strong>wd</strong> with the factor values <em>weekend</em> and <em>weekday</em> depending on the weekday. Note that we use the <strong>wday</strong> component of a POSIXlt object might be handier than using weekdays because the week day names differs and depend on the Locale used. The return of wday is a numeric weekday (0-6 starting on Sunday).</p>
 <pre class="r"><code>dfActivityFilled$wd &lt;- factor(sapply(dfActivityFilled$date, 
         function(x) {
             if (as.POSIXlt(x)$wday == 0 | as.POSIXlt(x)$wday == 6) {  # Sunday=0 ; Saturday=6

@@ -248,7 +248,7 @@ The median value shows a little difference (old: 10765.00, new: 10766.19) and is
 
 ### New factor column WEEKDAY (wd)
 
-Using the updated dataset, we are creating a new column called weekend which will be TRUE or FALSE depending on the weekday.
+Using the updated dataset, we are creating a new column called **wd** with the factor values *weekend* and *weekday* depending on the weekday.
 Note that we use the **wday** component of a POSIXlt object might be handier than using weekdays because the week day names differs and depend on the Locale used.
 The return of wday is a numeric weekday (0-6 starting on Sunday).
 
